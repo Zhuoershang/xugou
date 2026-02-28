@@ -1,4 +1,4 @@
-name = "xugou-app"
+name = "xugou-service-status"
 main = "backend/src/index.ts"
 compatibility_date = "2025-03-10"
 compatibility_flags = ["nodejs_compat"]
@@ -11,8 +11,8 @@ crons = ["* * * * *"]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "${D1_DATABASE_NAME}" # 使用占位符
-database_id = "${D1_DATABASE_ID}" # 使用占位符
+database_name = "xugou_d1" # 使用占位符
+database_id = "2219eb8d-de45-449b-a7d6-c56090eb18e4" # 使用占位符
 
 [assets]
 binding = "ASSETS"
