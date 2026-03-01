@@ -114,6 +114,7 @@ export async function checkMonitor(monitor: models.Monitor) {
     previous_status: previousStatus,
     responseTime,
     statusCode,
+    realurl: result.realurl,
     error,
   };
 }
@@ -389,6 +390,7 @@ export async function manualCheckMonitor(id: number, userId: number, userRole: s
             time: new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" }),
             response_time: `${result.responseTime}ms`,
             url: monitor.url,
+            realurl:result.realurl,
             status_code: result.statusCode
               ? result.statusCode.toString()
               : "无",
