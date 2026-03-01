@@ -53,14 +53,14 @@ export async function checkMonitor(monitor: models.Monitor) {
       body: monitor.method !== "GET" && monitor.method !== "HEAD" ? monitor.body || "" : undefined,
       signal: controller.signal,
     });
-    console.log("超时标记1:" + JSON.stringify(response));
+    //console.log("超时标记1:" + JSON.stringify(response));
     // 清除超时
     clearTimeout(timeoutId);
-    console.log(`超时标记2: ${monitor.name} (${realurl})`);
+    //console.log(`超时标记2: ${monitor.name} (${realurl})`);
     // 计算响应时间
     responseTime = Date.now() - startTime;
     statusCode = response.status;
-    console.log(`超时标记3: ${monitor.name} (${realurl})`);
+    //console.log(`超时标记3: ${monitor.name} (${realurl})`);
     realurl = response.url;
     
     console.log(`真实服务监控地址: ${monitor.name} (${realurl})，方法：${monitor.method}，状态码：${statusCode}，延迟：${responseTime}`);
@@ -91,6 +91,68 @@ export async function checkMonitor(monitor: models.Monitor) {
     responseTime = Date.now() - startTime;
     console.error(`监控 ${monitor.name} (${monitor.url}) 请求失败: ${error}`);
   }
+    // ========== 新增重试逻辑 ==========
+    // 如果status = "down" 且数据库中有记录的 realurl 且与当前 URL 不同，则尝试用 realurl 重试一次
+  if (status == "down" && monitor.realurl && monitor.realurl !== monitor.url) {
+    console.log(`请求失败，尝试使用数据库中的真实 URL 重试: ${monitor.realurl}`);
+    try {
+      const retryController = new AbortController();
+      const retryTimeoutId = setTimeout(
+        () => retryController.abort(),
+        (monitor.timeout || 30) * 1000
+      );
+
+      // 准备相同的 headers
+      let retryHeaders: Headers = new Headers();
+      if (typeof monitor.headers === "string") {
+        try {
+          const parseHeaders = JSON.parse(monitor.headers);
+          if (parseHeaders && typeof parseHeaders === "object" && !Array.isArray(parseHeaders)) {
+            retryHeaders = new Headers(parseHeaders);
+          }
+        } catch (e) {}
+      }
+
+      // 使用 realurl 发起请求
+      const retime = Date.now);
+      const retryResponse = await fetch(monitor.realurl, {
+        method: monitor.method || "GET",
+        headers: retryHeaders,
+        body: monitor.method !== "GET" && monitor.method !== "HEAD" ? monitor.body || "" : undefined,
+        signal: retryController.signal,
+      });
+
+      clearTimeout(retryTimeoutId);
+      
+      // 重试成功，更新所有变量（使用总耗时）
+      responseTime = Date.now() - retime; // 从重试请求到结束总时间
+      statusCode = retryResponse.status;
+      realurl = retryResponse.url; // 可能是重定向后的最终 URL
+      
+      // 重新判断状态码是否符合预期
+      const expectedStatus = monitor.expected_status;
+      let isExpectedStatus = false;
+      if (expectedStatus >= 1 && expectedStatus <= 5) {
+        const statusCodeFirstDigit = Math.floor(statusCode / 100);
+        isExpectedStatus = statusCodeFirstDigit === expectedStatus;
+      } else {
+        isExpectedStatus = statusCode === expectedStatus;
+      }
+
+      status = isExpectedStatus ? "up" : "down";
+      if (!isExpectedStatus) {
+        error = `状态码不符合预期: ${statusCode}, 预期: ${getExpectedStatusDisplay(expectedStatus)}`;
+      } else {
+        error = null; // 清除之前的错误
+      }
+
+      console.log(`重试真实链接监控成功: ${monitor.name} (${realurl})，状态码：${statusCode}，延迟：${responseTime}`);
+    } catch (retryError) {
+      // 重试也失败，保留原有错误信息，不做额外处理
+      console.error(`重试也失败: ${retryError}`);
+    }
+  }
+  // ========== 重试逻辑结束 ==========
 
   // 确保数据库一定会被更新
   try {
