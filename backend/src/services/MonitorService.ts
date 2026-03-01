@@ -55,7 +55,7 @@ export async function checkMonitor(monitor: models.Monitor) {
 
     // 清除超时
     clearTimeout(timeoutId);
-
+    console.log(`真实服务监控地址: ${monitor.name} (${response.url})`);
     // 计算响应时间
     responseTime = Date.now() - startTime;
     statusCode = response.status;
