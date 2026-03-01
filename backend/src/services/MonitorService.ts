@@ -80,7 +80,7 @@ export async function checkMonitor(monitor: models.Monitor) {
       // 重试也失败，保留原有错误信息，不做额外处理
           // 处理请求错误 (连接超时, DNS错误等)
       status = "down";
-      error = e instanceof retryError ? e.message : String(e);
+      error = retryError instanceof Error ? retryError.message : String(retryError);
       responseTime = Date.now() - retime;
       console.error(`ID:${monitor.id}--真实链接监控 ${monitor.name} (${monitor.url}) 请求失败: ${error}`);
     }
