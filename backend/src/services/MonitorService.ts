@@ -58,7 +58,7 @@ export async function checkMonitor(monitor: models.Monitor) {
     // 计算响应时间
     responseTime = Date.now() - startTime;
     statusCode = response.status;
-    console.log(`真实服务监控地址: ${monitor.name} (${response.url})，状态码：${statusCode}，延迟：${responseTime}`);
+    console.log(`真实服务监控地址: ${monitor.name} (${response.url})，方法：${monitor.method}，状态码：${statusCode}，延迟：${responseTime}`);
     // 检查状态码是否符合预期
     let isExpectedStatus = false;
     const expectedStatus = monitor.expected_status;
