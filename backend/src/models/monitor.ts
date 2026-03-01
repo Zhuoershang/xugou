@@ -3,7 +3,7 @@ export interface Monitor {
   id: number;
   name: string;
   url: string;
-  realurl:string;
+  realurl: string | null; 
   method: string;
   interval: number;
   timeout: number;
