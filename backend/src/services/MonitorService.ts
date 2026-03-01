@@ -7,7 +7,7 @@ export async function getMonitorsToCheck() {
 }
 
 export async function checkMonitor(monitor: models.Monitor) {
-  console.log(`开始检查监控项: ${monitor.name} (${monitor.url})`);
+  console.log(`ID:${monitor.id}--开始检查监控项: ${monitor.name} (${monitor.url})`);
 
   // 记录监控之前的状态
   const previousStatus = monitor.status;
@@ -53,17 +53,17 @@ export async function checkMonitor(monitor: models.Monitor) {
       body: monitor.method !== "GET" && monitor.method !== "HEAD" ? monitor.body || "" : undefined,
       signal: controller.signal,
     });
-    //console.log("超时标记1:" + JSON.stringify(response));
+    //.log("超时标记1:" + JSON.stringify(response));
     // 清除超时
     clearTimeout(timeoutId);
-    //console.log(`超时标记2: ${monitor.name} (${realurl})`);
+    //.log(`超时标记2: ${monitor.name} (${realurl})`);
     // 计算响应时间
     responseTime = Date.now() - startTime;
     statusCode = response.status;
-    //console.log(`超时标记3: ${monitor.name} (${realurl})`);
+    //.log(`超时标记3: ${monitor.name} (${realurl})`);
     realurl = response.url;
     
-    console.log(`真实服务监控地址: ${monitor.name} (${realurl})，方法：${monitor.method}，状态码：${statusCode}，延迟：${responseTime}`);
+    .log(`ID:${monitor.id}--真实服务监控地址: ${monitor.name} (${realurl})，方法：${monitor.method}，状态码：${statusCode}，延迟：${responseTime}`);
     // 检查状态码是否符合预期
     let isExpectedStatus = false;
     const expectedStatus = monitor.expected_status;
@@ -89,12 +89,12 @@ export async function checkMonitor(monitor: models.Monitor) {
     status = "down";
     error = e instanceof Error ? e.message : String(e);
     responseTime = Date.now() - startTime;
-    console.error(`监控 ${monitor.name} (${monitor.url}) 请求失败: ${error}`);
+    console.error(`ID:${monitor.id}--监控 ${monitor.name} (${monitor.url}) 请求失败: ${error}`);
   }
     // ========== 新增重试逻辑 ==========
     // 如果status = "down" 且数据库中有记录的 realurl 且与当前 URL 不同，则尝试用 realurl 重试一次
   if (status == "down" && monitor.realurl && monitor.realurl !== monitor.url) {
-    console.log(`请求失败，尝试使用数据库中的真实 URL 重试: ${monitor.realurl}`);
+    console.log(`ID:${monitor.id}--请求失败，尝试使用数据库中的真实 URL 重试: ${monitor.realurl}`);
     try {
       const retryController = new AbortController();
       const retryTimeoutId = setTimeout(
@@ -146,10 +146,10 @@ export async function checkMonitor(monitor: models.Monitor) {
         error = null; // 清除之前的错误
       }
 
-      console.log(`重试真实链接监控成功: ${monitor.name} (${realurl})，状态码：${statusCode}，延迟：${responseTime}`);
+      console.log(`ID:${monitor.id}--重试真实链接监控成功: ${monitor.name} (${realurl})，状态码：${statusCode}，延迟：${responseTime}`);
     } catch (retryError) {
       // 重试也失败，保留原有错误信息，不做额外处理
-      console.error(`重试也失败: ${retryError}`);
+      console.error(`ID:${monitor.id}--重试也失败: ${retryError}`);
     }
   }
   // ========== 重试逻辑结束 ==========
@@ -171,10 +171,10 @@ export async function checkMonitor(monitor: models.Monitor) {
     if (realurl && realurl !== monitor.url) {
       await repositories.updateMonitorRealUrl(monitor.id, realurl);
     }
-    console.log(`监控 ${monitor.name} (${monitor.url}) 检查完成. 结果: ${status}`);
+    console.log(`ID:${monitor.id}--监控 ${monitor.name} (${monitor.url}) 检查完成. 结果: ${status}`);
 
   } catch (dbError) {
-    console.error(`更新数据库失败 (${monitor.name}):`, dbError);
+    console.error(`ID:${monitor.id}--更新数据库失败 (${monitor.name}):`, dbError);
     // 即使数据库更新失败也返回检查结果，以免阻塞流程
   }
 
