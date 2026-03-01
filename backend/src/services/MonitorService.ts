@@ -94,7 +94,7 @@ export async function checkMonitor(monitor: models.Monitor) {
     // ========== 新增重试逻辑 ==========
     // 如果status = "down" 且数据库中有记录的 realurl 且与当前 URL 不同，则尝试用 realurl 重试一次
   if (status == "down" && monitor.realurl && monitor.realurl !== monitor.url) {
-    console.log(`ID:${monitor.id}--请求失败，尝试使用数据库中的真实 URL 重试: ${monitor.realurl}`);
+    console.warn(`ID:${monitor.id}--请求失败，尝试使用数据库中的真实 URL 重试: ${monitor.realurl}`);
     try {
       const retryController = new AbortController();
       const retryTimeoutId = setTimeout(
@@ -146,7 +146,7 @@ export async function checkMonitor(monitor: models.Monitor) {
         error = null; // 清除之前的错误
       }
 
-      console.log(`ID:${monitor.id}--重试真实链接监控成功: ${monitor.name} (${realurl})，状态码：${statusCode}，延迟：${responseTime}`);
+      console.warn(`ID:${monitor.id}--重试真实链接监控成功: ${monitor.name} (${realurl})，状态码：${statusCode}，延迟：${responseTime}`);
     } catch (retryError) {
       // 重试也失败，保留原有错误信息，不做额外处理
       console.error(`ID:${monitor.id}--重试也失败: ${retryError}`);
