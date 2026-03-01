@@ -19,7 +19,7 @@ export async function checkMonitor(monitor: models.Monitor) {
   let statusCode: number | null = null;
   let error: string | null = null;
   let response: Response | null = null;
-  let realurl:string | null = null;
+  let realurl:string;
 
   try {
     // 设置超时
