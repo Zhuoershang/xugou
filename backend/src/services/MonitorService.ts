@@ -19,6 +19,7 @@ export async function checkMonitor(monitor: models.Monitor) {
   let statusCode: number | null = null;
   let error: string | null = null;
   let response: Response | null = null;
+  let realurl:string | null = null;
 
   try {
     // 设置超时
@@ -58,7 +59,8 @@ export async function checkMonitor(monitor: models.Monitor) {
     // 计算响应时间
     responseTime = Date.now() - startTime;
     statusCode = response.status;
-    console.log(`真实服务监控地址: ${monitor.name} (${response.url})，方法：${monitor.method}，状态码：${statusCode}，延迟：${responseTime}`);
+    realurl = response.url;
+    console.log(`真实服务监控地址: ${monitor.name} (${realurl})，方法：${monitor.method}，状态码：${statusCode}，延迟：${responseTime}`);
     // 检查状态码是否符合预期
     let isExpectedStatus = false;
     const expectedStatus = monitor.expected_status;
@@ -114,7 +116,7 @@ export async function checkMonitor(monitor: models.Monitor) {
     previous_status: previousStatus,
     responseTime,
     statusCode,
-    realurl: response.url,
+    realurl: realurl,
     error,
   };
 }
