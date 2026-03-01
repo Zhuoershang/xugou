@@ -23,6 +23,7 @@ export const monitors = sqliteTable("monitors", {
   id: int("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   url: text("url").notNull(),
+  realurl: text("realurl"),
   method: text("method").notNull(),
   interval: int("interval").notNull(),
   timeout: int("timeout").notNull(),
