@@ -11,7 +11,7 @@ export async function checkMonitor(monitor: models.Monitor) {
 
   // 记录监控之前的状态
   const previousStatus = monitor.status;
-  const startTime = Date.now();
+  // const startTime = Date.now();
   
   // 初始化结果变量
   let status = "down"; // 默认为 down，除非请求成功且符合预期
@@ -21,81 +21,11 @@ export async function checkMonitor(monitor: models.Monitor) {
   let response: Response | null = null;
   let realurl:string = monitor.url;
 
-  try {
-    // 设置超时
-    const controller = new AbortController();
-    const timeoutId = setTimeout(
-      () => controller.abort(),
-      (monitor.timeout || 30) * 1000
-    );
-
-    // 准备 Headers
-    let headers: Headers = new Headers();
-    if (typeof monitor.headers === "string") {
-      try {
-        const parseHeaders = JSON.parse(monitor.headers);
-        if (
-          parseHeaders &&
-          typeof parseHeaders === "object" &&
-          !Array.isArray(parseHeaders)
-        ) {
-          headers = new Headers(parseHeaders);
-        }
-      } catch (e) {
-        // header 解析失败忽略
-      }
-    }
-
-    // 发送请求
-    response = await fetch(monitor.url, {
-      method: monitor.method || "GET",
-      headers: headers,
-      body: monitor.method !== "GET" && monitor.method !== "HEAD" ? monitor.body || "" : undefined,
-      signal: controller.signal,
-    });
-    //console.log("超时标记1:" + JSON.stringify(response));
-    // 清除超时
-    clearTimeout(timeoutId);
-    //console.log(`超时标记2: ${monitor.name} (${realurl})`);
-    // 计算响应时间
-    responseTime = Date.now() - startTime;
-    statusCode = response.status;
-    //console.log(`超时标记3: ${monitor.name} (${realurl})`);
-    realurl = response.url;
-    
-    console.log(`ID:${monitor.id}--真实服务监控地址: ${monitor.name} (${realurl})，方法：${monitor.method}，状态码：${statusCode}，延迟：${responseTime}`);
-    // 检查状态码是否符合预期
-    let isExpectedStatus = false;
-    const expectedStatus = monitor.expected_status;
-
-    // 处理范围状态码：如果预期状态码为个位数（1-5），则视为范围检查
-    if (expectedStatus >= 1 && expectedStatus <= 5) {
-      const statusCodeFirstDigit = Math.floor(statusCode / 100);
-      isExpectedStatus = statusCodeFirstDigit === expectedStatus;
-    } else {
-      isExpectedStatus = statusCode === expectedStatus;
-    }
-
-    // 确定最终状态
-    status = isExpectedStatus ? "up" : "down";
-    
-    // 如果状态码不符合预期，记录错误信息
-    if (!isExpectedStatus) {
-      error = `状态码不符合预期: ${statusCode}, 预期: ${getExpectedStatusDisplay(expectedStatus)}`;
-      console.error(`ID:${monitor.id}--监控 ${monitor.name} (${monitor.url})，状态码不符: ${statusCode}`);
-    }
-
-  } catch (e) {
-    // 处理请求错误 (连接超时, DNS错误等)
-    status = "down";
-    error = e instanceof Error ? e.message : String(e);
-    responseTime = Date.now() - startTime;
-    console.error(`ID:${monitor.id}--监控 ${monitor.name} (${monitor.url}) 请求失败: ${error}`);
-  }
-    // ========== 新增重试逻辑 ==========
-    // 如果status = "down" 且数据库中有记录的 realurl 且与当前 URL 不同，则尝试用 realurl 重试一次
-  if (status == "down" && monitor.realurl && monitor.realurl !== monitor.url) {
-    console.warn(`ID:${monitor.id}--请求失败，尝试使用数据库中的真实 URL 重试: ${monitor.realurl}`);
+  // ========== 优先尝试对已缓存的真实链接进行监测 ==========
+  // 如果数据库中有记录的 realurl 且与当前 URL 不同，则先尝试用 realurl 检查。仍失败，再对原链接重试
+  if (monitor.realurl && monitor.realurl !== monitor.url) {
+    console.warn(`ID:${monitor.id}--优先尝试使用数据库中的真实 URL 监测: ${monitor.realurl}`);
+    const retime = Date.now();
     try {
       const retryController = new AbortController();
       const retryTimeoutId = setTimeout(
@@ -113,9 +43,7 @@ export async function checkMonitor(monitor: models.Monitor) {
           }
         } catch (e) {}
       }
-
       // 使用 realurl 发起请求
-      const retime = Date.now();
       const retryResponse = await fetch(monitor.realurl, {
         method: monitor.method || "GET",
         headers: retryHeaders,
@@ -143,19 +71,96 @@ export async function checkMonitor(monitor: models.Monitor) {
       status = isExpectedStatus ? "up" : "down";
       if (!isExpectedStatus) {
         error = `状态码不符合预期: ${statusCode}, 预期: ${getExpectedStatusDisplay(expectedStatus)}`;
-        console.error(`ID:${monitor.id}--重试 ${monitor.name} (${monitor.url})，状态码不符: ${statusCode}`);
+        console.error(`ID:${monitor.id}--监控 ${monitor.name} (${monitor.url})，状态码不符: ${statusCode}`);
       } else {
         error = null; // 清除之前的错误
       }
-
-      console.warn(`ID:${monitor.id}--重试真实链接监控成功: ${monitor.name} (${realurl})，状态码：${statusCode}，延迟：${responseTime}`);
+      console.warn(`ID:${monitor.id}--真实链接监控成功: ${monitor.name} (${realurl})，状态码：${statusCode}，延迟：${responseTime}`);
     } catch (retryError) {
       // 重试也失败，保留原有错误信息，不做额外处理
-      console.error(`ID:${monitor.id}--重试也失败: ${retryError}`);
+          // 处理请求错误 (连接超时, DNS错误等)
+      status = "down";
+      error = e instanceof retryError ? e.message : String(e);
+      responseTime = Date.now() - retime;
+      console.error(`ID:${monitor.id}--真实链接监控 ${monitor.name} (${monitor.url}) 请求失败: ${error}`);
     }
   }
-  // ========== 重试逻辑结束 ==========
-
+  // ========== 尝试逻辑结束 ==========
+  
+  if (status == "down") {
+    // ========== 以下为原服务链接的监测逻辑 ==========
+    const startTime = Date.now();
+    try {
+      // 设置超时
+      const controller = new AbortController();
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        (monitor.timeout || 30) * 1000
+      );
+  
+      // 准备 Headers
+      let headers: Headers = new Headers();
+      if (typeof monitor.headers === "string") {
+        try {
+          const parseHeaders = JSON.parse(monitor.headers);
+          if (
+            parseHeaders &&
+            typeof parseHeaders === "object" &&
+            !Array.isArray(parseHeaders)
+          ) {
+            headers = new Headers(parseHeaders);
+          }
+        } catch (e) {
+          // header 解析失败忽略
+        }
+      }
+  
+      // 发送请求
+      response = await fetch(monitor.url, {
+        method: monitor.method || "GET",
+        headers: headers,
+        body: monitor.method !== "GET" && monitor.method !== "HEAD" ? monitor.body || "" : undefined,
+        signal: controller.signal,
+      });
+      // 清除超时
+      clearTimeout(timeoutId);
+      //console.log(`超时标记2: ${monitor.name} (${realurl})`);
+      // 计算响应时间
+      responseTime = Date.now() - startTime;
+      statusCode = response.status;
+      realurl = response.url;
+      
+      console.log(`ID:${monitor.id}--真实服务监控地址: ${monitor.name} (${realurl})，方法：${monitor.method}，状态码：${statusCode}，延迟：${responseTime}`);
+      // 检查状态码是否符合预期
+      let isExpectedStatus = false;
+      const expectedStatus = monitor.expected_status;
+  
+      // 处理范围状态码：如果预期状态码为个位数（1-5），则视为范围检查
+      if (expectedStatus >= 1 && expectedStatus <= 5) {
+        const statusCodeFirstDigit = Math.floor(statusCode / 100);
+        isExpectedStatus = statusCodeFirstDigit === expectedStatus;
+      } else {
+        isExpectedStatus = statusCode === expectedStatus;
+      }
+  
+      // 确定最终状态
+      status = isExpectedStatus ? "up" : "down";
+      
+      // 如果状态码不符合预期，记录错误信息
+      if (!isExpectedStatus) {
+        error = `状态码不符合预期: ${statusCode}, 预期: ${getExpectedStatusDisplay(expectedStatus)}`;
+        console.error(`ID:${monitor.id}--监控 ${monitor.name} (${monitor.url})，状态码不符: ${statusCode}`);
+      }
+  
+    } catch (e) {
+      // 处理请求错误 (连接超时, DNS错误等)
+      status = "down";
+      error = e instanceof Error ? e.message : String(e);
+      responseTime = Date.now() - startTime;
+      console.error(`ID:${monitor.id}--监控 ${monitor.name} (${monitor.url}) 请求失败: ${error}`);
+    }
+  }
+  
   // 确保数据库一定会被更新
   try {
     // 1. 记录状态历史
