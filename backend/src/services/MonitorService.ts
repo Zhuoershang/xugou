@@ -82,6 +82,7 @@ export async function checkMonitor(monitor: models.Monitor) {
     // 如果状态码不符合预期，记录错误信息
     if (!isExpectedStatus) {
       error = `状态码不符合预期: ${statusCode}, 预期: ${getExpectedStatusDisplay(expectedStatus)}`;
+      console.error(`ID:${monitor.id}--监控 ${monitor.name} (${monitor.url})，状态码不符: ${statusCode}`);
     }
 
   } catch (e) {
