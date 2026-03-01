@@ -159,6 +159,18 @@ export async function updateMonitorStatus(
     })
     .where(eq(monitors.id, monitorId));
 }
+// 更新重定向后的realurl
+export async function updateMonitorRealUrl(
+  monitorId: number,
+  realurl: string
+) {
+  await db
+    .update(monitors)
+    .set({
+      realurl: realurl,
+    })
+    .where(eq(monitors.id, monitorId));
+}
 
 // 创建新监控
 export async function createMonitor(
