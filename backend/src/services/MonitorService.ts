@@ -114,7 +114,7 @@ export async function checkMonitor(monitor: models.Monitor) {
     previous_status: previousStatus,
     responseTime,
     statusCode,
-    realurl: result.realurl,
+    realurl: response.url,
     error,
   };
 }
