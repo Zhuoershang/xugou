@@ -616,14 +616,25 @@ async function sendWeComNotification(
 
     // 企业微信的 Markdown 格式要求主题是加粗标题
     const markdownContent = `**${subject}**\n\n${content}`;
-
+    
+    /**
     const message = {
       msgtype: "markdown",
       markdown: {
         content: markdownContent,
       },
     };
-
+    **/
+    // 微信客户端无法接收markdown通知，该为普通文本消息。
+    const message = {
+      msgtype: "text",
+      text: {
+        content: content,
+        mentioned_list:["zers"],
+        title: subject,
+      },
+    };
+    
     console.log("[企业微信通知] 准备发送通知到:", webhookUrl);
     const response = await fetch(webhookUrl, {
       method: "POST",
