@@ -143,6 +143,7 @@ export async function checkMonitor(monitor: models.Monitor) {
       status = isExpectedStatus ? "up" : "down";
       if (!isExpectedStatus) {
         error = `状态码不符合预期: ${statusCode}, 预期: ${getExpectedStatusDisplay(expectedStatus)}`;
+        console.error(`ID:${monitor.id}--重试 ${monitor.name} (${monitor.url})，状态码不符: ${statusCode}`);
       } else {
         error = null; // 清除之前的错误
       }
