@@ -60,6 +60,7 @@ export async function checkMonitor(monitor: models.Monitor) {
     responseTime = Date.now() - startTime;
     statusCode = response.status;
     realurl = response.url;
+
     console.log(`真实服务监控地址: ${monitor.name} (${realurl})，方法：${monitor.method}，状态码：${statusCode}，延迟：${responseTime}`);
     // 检查状态码是否符合预期
     let isExpectedStatus = false;
@@ -102,7 +103,10 @@ export async function checkMonitor(monitor: models.Monitor) {
 
     // 2. 更新监控状态，防止重复通知
     await repositories.updateMonitorStatus(monitor.id, status, responseTime);
-    
+    // 新增字段的更新
+    if (realurl && realurl !== monitor.url) {
+      await repositories.updateMonitorRealUrl(monitor.id, realurl);
+    }
     console.log(`监控 ${monitor.name} (${monitor.url}) 检查完成. 结果: ${status}`);
 
   } catch (dbError) {
