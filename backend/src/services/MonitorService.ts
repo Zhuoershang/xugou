@@ -53,14 +53,16 @@ export async function checkMonitor(monitor: models.Monitor) {
       body: monitor.method !== "GET" && monitor.method !== "HEAD" ? monitor.body || "" : undefined,
       signal: controller.signal,
     });
-
+    console.log("超时标记1:" + JSON.stringify(response));
     // 清除超时
     clearTimeout(timeoutId);
+    console.log(`超时标记2: ${monitor.name} (${realurl})`);
     // 计算响应时间
     responseTime = Date.now() - startTime;
     statusCode = response.status;
+    console.log(`超时标记3: ${monitor.name} (${realurl})`);
     realurl = response.url;
-
+    
     console.log(`真实服务监控地址: ${monitor.name} (${realurl})，方法：${monitor.method}，状态码：${statusCode}，延迟：${responseTime}`);
     // 检查状态码是否符合预期
     let isExpectedStatus = false;
