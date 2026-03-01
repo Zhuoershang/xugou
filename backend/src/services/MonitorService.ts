@@ -114,7 +114,7 @@ export async function checkMonitor(monitor: models.Monitor) {
       }
 
       // 使用 realurl 发起请求
-      const retime = Date.now;
+      const retime = Date.now();
       const retryResponse = await fetch(monitor.realurl, {
         method: monitor.method || "GET",
         headers: retryHeaders,
