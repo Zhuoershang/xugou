@@ -361,7 +361,7 @@ export default {
     const hour = now.getUTCHours();
     const minute = now.getUTCMinutes();
 
-    if (hour == 0 && minute == 5) {
+    if (hour == 18 && minute == 30) {
       // 生成每日监控统计数据
       const statsResult = await generateDailyStats(c);
       console.log("生成每日监控统计测试");
