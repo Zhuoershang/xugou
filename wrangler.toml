@@ -9,7 +9,6 @@ minify = true # 生产环境压缩代码
 [triggers]
 crons = ["* * * * *"]
 
-
 [[d1_databases]]
 binding = "DB"
 database_name = "xugou_d1" # 使用占位符
