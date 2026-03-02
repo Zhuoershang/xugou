@@ -172,8 +172,20 @@ async function generateDailyStats(c: any) {
     console.log("开始从24小时热表生成每日监控统计数据...");
 
     // 获取前一天的日期 (YYYY-MM-DD 格式)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1); // 修正：获取前一天的日期
+    const yesterday = new Date();// 获取时间设定为UTC   X日
+    // 获取当前UTC 时间的时分数
+    const hour = now.getUTCHours(); 
+    const minute = now.getUTCMinutes();
+    // 我们设定，在北京时间0点之后，整理前一天的数据。
+    // 那么北京时间  X+1日 0点时刻，UTC时间为X日16点。所以：
+    // 如果在UTC    X日16点前整理数据，此时北京时间与UTC同在X日，则整理X-1日数据。
+    // 如果在UTC    X日16点后整理数据，此时北京时间已变为X+1日，则整理X日的数据。
+    if(hour<16){
+      yesterday.setDate(yesterday.getDate() - 1); // 修正：获取前一天的日期
+      // 有点绕，也就是说 UTC时间的16点之后，已经是北京时间的第二天的。所以此时段  UTC时间的当天日期本身就是北京时间的昨天日期。不用再做-1
+      // 原开发者设置的整理数据触发时间为每日0点05分，这个时间段0<16 所以需要-1。 而我设置时间为16:30，因此判断一下就不用-1了。
+    }
+    
     const dateStr = yesterday.toISOString().split("T")[0];
 
     console.log(`正在处理日期 ${dateStr} 的数据`);
@@ -361,8 +373,10 @@ export default {
     const hour = now.getUTCHours();
     const minute = now.getUTCMinutes();
 
-    if (hour == 11 && minute == 30) {
-      // 生成每日监控统计数据
+    if (hour == 16 && minute == 30) {
+      // UTC时间即世界协调时间，北京时间属于中国标准时间，比UTC时间快8小时，即北京时间等于UTC时间加上8小时。
+      // UTC 16点，正好是北京时间 下一天的0点。 因此在北京时间0点之后开始统计前一天的记录，则触发时钟应该在UTC前一天的16点之后执行。
+      // 此处选择在UTC16:30（也即北京时间0:30） 生成生成每日（前一天）监控统计数据 统计范围为前一天的0点至23点59
       const statsResult = await generateDailyStats(c);
       console.log("生成每日监控统计测试");
       if (statsResult.error) {
