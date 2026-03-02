@@ -173,6 +173,7 @@ async function generateDailyStats(c: any) {
 
     // 获取前一天的日期 (YYYY-MM-DD 格式)
     const yesterday = new Date();// 获取时间设定为UTC   X日
+    /**
     // 获取当前UTC 时间的时分数
     const hour = now.getUTCHours(); 
     const minute = now.getUTCMinutes();
@@ -185,6 +186,11 @@ async function generateDailyStats(c: any) {
       // 有点绕，也就是说 UTC时间的16点之后，已经是北京时间的第二天的。所以此时段  UTC时间的当天日期本身就是北京时间的昨天日期。不用再做-1
       // 原开发者设置的整理数据触发时间为每日0点05分，这个时间段0<16 所以需要-1。 而我设置时间为16:30，因此判断一下就不用-1了。
     }
+    **/
+    
+    // 原项目中时间均使用UTC时间进行记录，因此第二天任何时间归档，均-1 则为前一天
+    // 设定在UTC 0:05分整理数据，应该是北京时间 早上8:05分 
+    yesterday.setDate(yesterday.getDate() - 1); // 修正：获取前一天的日期
     
     const dateStr = yesterday.toISOString().split("T")[0];
 
@@ -335,13 +341,20 @@ async function generateDailyStats(c: any) {
     console.log(`每日统计数据生成完成，成功处理了 ${processed} 个监控`);
 
     // 从 24h 表中删除已处理的数据
+    // 此处修改：当天整理归档昨天的数据，同时删除前天的数据（这样在24小时曲线中，可以常驻显示最近24小时状态）
+    const beforeyesterday = new Date();// 获取时间前天的日期占位
+    beforeyesterday.setDate(beforeyesterday.getDate() - 2); // 修正：获取前2天（前天）的日期
+    const beforedateStr = beforeyesterday.toISOString().split("T")[0];
+    const startTime1 = `${beforedateStr}T00:00:00.000Z`;
+    const endTime1 = `${beforedateStr}T23:59:59.999Z`;
+    
     console.log(`开始从24小时热表删除已处理的数据`);
     await db
       .delete(monitorStatusHistory24h)
       .where(
         and(
-          gte(monitorStatusHistory24h.timestamp, startTime),
-          lte(monitorStatusHistory24h.timestamp, endTime)
+          gte(monitorStatusHistory24h.timestamp, startTime1),
+          lte(monitorStatusHistory24h.timestamp, endTime1)
         )
       );
     console.log(`从24小时热表删除已处理的数据完成`);
@@ -373,7 +386,7 @@ export default {
     const hour = now.getUTCHours();
     const minute = now.getUTCMinutes();
 
-    if (hour == 16 && minute == 30) {
+    if (hour == 0 && minute == 5) {
       // UTC时间即世界协调时间，北京时间属于中国标准时间，比UTC时间快8小时，即北京时间等于UTC时间加上8小时。
       // UTC 16点，正好是北京时间 下一天的0点。 因此在北京时间0点之后开始统计前一天的记录，则触发时钟应该在UTC前一天的16点之后执行。
       // 此处选择在UTC16:30（也即北京时间0:30） 生成生成每日（前一天）监控统计数据 统计范围为前一天的0点至23点59
