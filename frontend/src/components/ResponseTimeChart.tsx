@@ -40,6 +40,7 @@ interface DataPoint {
   x: number; // 时间戳（毫秒）
   y: number; // 响应时间（毫秒）
   status: "up" | "down"; // 状态
+  status_code?: number;   // 新增：HTTP状态码
   originalIndex?: number; // 原始数据索引
   response_time?: number; // 直接存储原始的响应时间，方便调试
 }
@@ -91,21 +92,22 @@ const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({
         }
         return "";
       },
-      label: (context: TooltipItem<"line">) => {
-        const dataPoint = context.raw as DataPoint;
-
-        // 确保有清晰明确的属性显示
-        return [
-          `${t("monitor.history.responseTime")}: ${Math.round(
-            dataPoint.y || 0
-          )}ms`,
-          `${t("common.status")}: ${
-            dataPoint.status === "up"
-              ? t("monitor.status.normal")
-              : t("monitor.status.failure")
-          }`,
-        ];
-      },
+    label: (context: TooltipItem<"line">) => {
+      const dataPoint = context.raw as DataPoint;
+    
+      const statusText = dataPoint.status === "up"
+        ? t("monitor.status.normal")
+        : t("monitor.status.failure");
+    
+      const statusCodeText = dataPoint.status_code !== undefined
+        ? ` (${dataPoint.status_code})`
+        : '';
+    
+      return [
+        `${t("monitor.history.responseTime")}: ${Math.round(dataPoint.y || 0)}ms`,
+        `${t("common.status")}: ${statusText}${statusCodeText}`,
+      ];
+    },
     };
   }, [t, formatTime]);
 
@@ -313,6 +315,7 @@ const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({
             x: timestamp.getTime(),
             y: responseTime,
             status,
+            status_code: item.status_code, // 关键：保留状态码
             response_time: responseTime,
             originalIndex: idx,
           };
@@ -378,6 +381,40 @@ const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({
 
     // 最终使用的数据点
     responseTimeData = filteredData;
+    
+    // ZERS 检测状态变化，生成点样式数组
+    const pointBackgroundColors: string[] = [];
+    const pointBorderColors: string[] = [];
+    const pointRadii: number[] = [];
+    const pointHitRadii: number[] = [];
+    
+    for (let i = 0; i < responseTimeData.length; i++) {
+      const current = responseTimeData[i];
+      const prev = i > 0 ? responseTimeData[i - 1] : null;
+    
+      let bgColor = "rgba(0, 0, 0, 0)";
+      let borderColor = "rgba(0, 0, 0, 0)";
+      let radius = 0;
+    
+      if (prev && current.status !== prev.status) {
+        if (prev.status === "down" && current.status === "up") {
+          // down → up：绿色圆点
+          bgColor = "rgba(34, 197, 94, 0.8)";   // 绿色半透明
+          borderColor = "rgba(34, 197, 94, 1)";
+          radius = 4;
+        } else if (prev.status === "up" && current.status === "down") {
+          // up → down：红色圆点
+          bgColor = "rgba(239, 68, 68, 0.8)";   // 红色半透明
+          borderColor = "rgba(239, 68, 68, 1)";
+          radius = 4;
+        }
+      }
+    
+      pointBackgroundColors.push(bgColor);
+      pointBorderColors.push(borderColor);
+      pointRadii.push(radius);
+      pointHitRadii.push(20); // 保持点击区域不变
+    }
 
     // 计算最大响应时间，用于设置y轴
     const maxResponseTime = Math.max(
