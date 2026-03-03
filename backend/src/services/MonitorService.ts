@@ -61,11 +61,17 @@ export async function checkMonitor(monitor: models.Monitor) {
       // 重新判断状态码是否符合预期
       const expectedStatus = monitor.expected_status;
       let isExpectedStatus = false;
-      if (expectedStatus >= 1 && expectedStatus <= 5) {
-        const statusCodeFirstDigit = Math.floor(statusCode / 100);
-        isExpectedStatus = statusCodeFirstDigit === expectedStatus;
+      
+      // 特殊规则：状态码 200 总是符合预期-ZERS
+      if (statusCode === 200) {
+          isExpected = true;
       } else {
-        isExpectedStatus = statusCode === expectedStatus;
+          if (expectedStatus >= 1 && expectedStatus <= 5) {
+              const statusCodeFirstDigit = Math.floor(statusCode / 100);
+              isExpected = statusCodeFirstDigit === expectedStatus;
+          } else {
+              isExpected = statusCode === expectedStatus;
+          }
       }
 
       status = isExpectedStatus ? "up" : "down";
@@ -136,11 +142,16 @@ export async function checkMonitor(monitor: models.Monitor) {
       const expectedStatus = monitor.expected_status;
   
       // 处理范围状态码：如果预期状态码为个位数（1-5），则视为范围检查
-      if (expectedStatus >= 1 && expectedStatus <= 5) {
-        const statusCodeFirstDigit = Math.floor(statusCode / 100);
-        isExpectedStatus = statusCodeFirstDigit === expectedStatus;
+      // 特殊规则：状态码 200 总是符合预期
+      if (statusCode === 200) {
+          isExpected = true;
       } else {
-        isExpectedStatus = statusCode === expectedStatus;
+          if (expectedStatus >= 1 && expectedStatus <= 5) {
+              const statusCodeFirstDigit = Math.floor(statusCode / 100);
+              isExpected = statusCodeFirstDigit === expectedStatus;
+          } else {
+              isExpected = statusCode === expectedStatus;
+          }
       }
   
       // 确定最终状态
