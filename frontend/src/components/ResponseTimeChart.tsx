@@ -432,8 +432,9 @@ const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({
       const newestTime = responseTimeData[responseTimeData.length - 1].x;
       timeRangeData = { min: oldestTime, max: newestTime };
     }
-
-    // 处理点的样式
+    
+    //重复代码
+    /** 处理点的样式
     const pointBackgroundColors: string[] = [];
     const pointBorderColors: string[] = [];
     const pointRadii: number[] = [];
@@ -445,7 +446,7 @@ const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({
       pointBorderColors.push("rgba(0, 0, 0, 0)");
       pointRadii.push(0);
       pointHitRadii.push(20);
-    });
+    });**/
 
     // 返回处理后的数据
     return {
