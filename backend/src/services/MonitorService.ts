@@ -64,13 +64,13 @@ export async function checkMonitor(monitor: models.Monitor) {
       
       // 特殊规则：状态码 200 总是符合预期-ZERS
       if (statusCode === 200) {
-          isExpected = true;
+          isExpectedStatus = true;
       } else {
           if (expectedStatus >= 1 && expectedStatus <= 5) {
               const statusCodeFirstDigit = Math.floor(statusCode / 100);
-              isExpected = statusCodeFirstDigit === expectedStatus;
+              isExpectedStatus = statusCodeFirstDigit === expectedStatus;
           } else {
-              isExpected = statusCode === expectedStatus;
+              isExpectedStatus = statusCode === expectedStatus;
           }
       }
 
@@ -144,13 +144,13 @@ export async function checkMonitor(monitor: models.Monitor) {
       // 处理范围状态码：如果预期状态码为个位数（1-5），则视为范围检查
       // 特殊规则：状态码 200 总是符合预期
       if (statusCode === 200) {
-          isExpected = true;
+          isExpectedStatus = true;
       } else {
           if (expectedStatus >= 1 && expectedStatus <= 5) {
               const statusCodeFirstDigit = Math.floor(statusCode / 100);
-              isExpected = statusCodeFirstDigit === expectedStatus;
+              isExpectedStatus = statusCodeFirstDigit === expectedStatus;
           } else {
-              isExpected = statusCode === expectedStatus;
+              isExpectedStatus = statusCode === expectedStatus;
           }
       }
   
